@@ -135,11 +135,11 @@ REST_FRAMEWORK = {
 from corsheaders.defaults import default_headers
 
 CORS_ALLOWED_ORIGINS = [
-    "http://127.0.0.1:5500",  # dein Frontend-Origin
+    "http://127.0.0.1:5500",  
 ]
 
 CORS_ALLOW_HEADERS = list(default_headers) + [
-    'authorization',  # hier erlaubst du den Authorization-Header
+    'authorization',  
 ]
 
-CORS_ALLOW_CREDENTIALS = True  # optional, falls Cookies/Token genutzt werden
+CORS_ALLOW_CREDENTIALS = True  
