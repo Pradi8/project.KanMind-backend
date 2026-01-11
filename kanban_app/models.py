@@ -24,9 +24,6 @@ class DashboardTasks(models.Model):
         ("done", "done"),
     ]
 
-    # def comments_count(self):
-    #     return self.comments.count() 
-
     title = models.CharField(max_length=150)
     description = models.TextField()
     board =  models.ForeignKey(Boards, related_name="tasks", null=True, blank=True, on_delete=models.SET_NULL)
@@ -43,7 +40,7 @@ class Comment(models.Model):
     task = models.ForeignKey(DashboardTasks, related_name="comments", null=True, blank=True, on_delete=models.SET_NULL)
     content = models.CharField(max_length=300)
     created_at = models.DateTimeField(auto_now_add=True)
-    author = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL) 
+    author = models.ForeignKey(User, on_delete=models.CASCADE) 
 
     def __str__(self):
         return self.content[:50]

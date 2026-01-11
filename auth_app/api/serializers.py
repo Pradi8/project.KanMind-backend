@@ -20,6 +20,7 @@ def split_full_name(full_name):
         last_name = ""
     return first_name, last_name
 
+
 def generate_username(first_name, last_name):
     base_username = f"{first_name.lower()}.{last_name.lower()}"
     username = base_username
@@ -28,6 +29,7 @@ def generate_username(first_name, last_name):
         username = f"{base_username}{counter}"
         counter += 1
     return username
+
 
 def create_user(validated_data):
     fullname = validated_data.pop('fullname')
