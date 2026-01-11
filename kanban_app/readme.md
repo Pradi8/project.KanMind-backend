@@ -21,7 +21,7 @@ It uses **Token Authentication** for secure access and supports a browsable API 
 ## Installation
 **Clone the repository**
 ```bash
-git clone https://github.com/yourusername/kanban-app.git
+git clone https://github.com/Pradi8/project.KanMind-backend.git
 cd kanban-app
 
 python -m venv venv
