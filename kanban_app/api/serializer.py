@@ -3,6 +3,12 @@ from rest_framework import serializers
 from kanban_app.models import Boards, DashboardTasks, Comment
 
 class CheckMailSerializer(serializers.ModelSerializer):
+    """
+    Serializer to represent a user with:
+    - ID
+    - Email
+    - Full name (first + last name)
+    """
     fullname = serializers.SerializerMethodField()
     class Meta:
         model = User
@@ -11,6 +17,12 @@ class CheckMailSerializer(serializers.ModelSerializer):
         return obj.get_full_name()
     
 class TasksSerializer(serializers.ModelSerializer):
+    """
+    Serializer for DashboardTasks model
+    - Includes nested assignee and reviewer info
+    - Includes count of comments
+    - Supports write-only fields for assignee_id and reviewer_id
+    """
     assignee = CheckMailSerializer(source='assignee_id', read_only=True)
     reviewer = CheckMailSerializer(source='reviewer_id', read_only=True)
     comments_count = serializers.SerializerMethodField()
@@ -31,12 +43,25 @@ class TasksSerializer(serializers.ModelSerializer):
         fields = ['id' ,'title','description', 'board', 'assignee', 'reviewer', 'due_date', 'priority', 'status', 'comments_count','assignee_id', 'reviewer_id']
 
 class BoardsMixin(serializers.Serializer):
+    """
+    Serializer fields for additional board metrics
+    - member_count: number of members in the board
+    - ticket_count: total number of tasks
+    - tasks_to_do_count: number of tasks with status 'To Do'
+    - tasks_high_prio_count: number of high-priority tasks
+    """
     member_count = serializers.IntegerField(read_only=True)
     ticket_count = serializers.IntegerField(read_only=True)
     tasks_to_do_count = serializers.IntegerField(read_only=True)
     tasks_high_prio_count = serializers.IntegerField(read_only=True)
 
 class BoardsSerializer(BoardsMixin, serializers.ModelSerializer):
+    """
+    Serializer for Boards model
+    - Nested members (full user info)
+    - Nested tasks (with TasksSerializer)
+    - Allows assigning members via member_ids (write-only)
+    """
     members = CheckMailSerializer(read_only = True, many=True)
     member_ids = serializers.PrimaryKeyRelatedField(
         many=True,
@@ -55,6 +80,11 @@ class BoardsSerializer(BoardsMixin, serializers.ModelSerializer):
         return super().to_internal_value(data)
     
 class CommentSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Comment model
+    - Shows author full name (read-only)
+    - Created_at and author are read-only fields
+    """
     author = serializers.CharField(
         source='author.get_full_name',
         read_only=True

@@ -8,7 +8,13 @@ from rest_framework.generics import GenericAPIView
 from .serializers import RegisterationSerializer, UserLoginSerializer
 
 class RegisterView(APIView):
-    permission_classes = [AllowAny]
+    """
+    API endpoint for user registration.
+    - Allows any user (no authentication required)
+    - Accepts POST request with: fullname, email, password, repeated_password
+    - Returns token and user info on successful registration
+    """
+   
     def post(self, request):
         serializer = RegisterationSerializer(data=request.data)
         if serializer.is_valid():
@@ -24,9 +30,14 @@ class RegisterView(APIView):
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# This function 
 class UserLoginView(GenericAPIView):
-    permission_classes = [AllowAny]
+    """
+    API endpoint for user login.
+    - Allows any user (no authentication required)
+    - Accepts POST request with email and password
+    - Returns authentication token and user info on success
+    """
+
     serializer_class = UserLoginSerializer
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
@@ -44,7 +55,11 @@ class UserLoginView(GenericAPIView):
     
 
 class LogoutView(APIView):
-    permission_classes = [IsAuthenticated]
+    """
+    API endpoint for logging out an authenticated user.
+    - Requires authentication
+    - Deletes the user's token
+    """
 
     def post(self, request):
         request.user.auth_token.delete()

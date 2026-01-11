@@ -11,6 +11,8 @@ from .views import  (
     CommentSingleView
 )
 
+# API endpoints for managing users, boards, tasks, and comments
+
 urlpatterns = [
     path('email-check/', UserEmailList.as_view(), name='email-check'),
     path('boards/', BoardView.as_view(), name='board'),
