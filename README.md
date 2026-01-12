@@ -24,7 +24,7 @@ It uses **Token Authentication** for secure access and supports a browsable API 
 git clone https://github.com/Pradi8/project.KanMind-backend.git
 cd project.KanMind-backend
 
-python -m venv venv
+python -m venv env
 source env/bin/activate  # Linux/Mac
 env\Scripts\activate     # Windows
 
