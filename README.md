@@ -25,8 +25,8 @@ git clone https://github.com/Pradi8/project.KanMind-backend.git
 cd kanban-app
 
 python -m venv venv
-source venv/bin/activate  # Linux/Mac
-venv\Scripts\activate     # Windows
+source env/bin/activate  # Linux/Mac
+env\Scripts\activate     # Windows
 
 pip install -r requirements.txt
 
