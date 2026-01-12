@@ -30,6 +30,8 @@ env\Scripts\activate     # Windows
 
 pip install -r requirements.txt
 
+pip install django-cors-headers
+pyp
 python manage.py migrate
 
 python manage.py createsuperuser
