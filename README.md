@@ -22,7 +22,7 @@ It uses **Token Authentication** for secure access and supports a browsable API 
 **Clone the repository**
 ```bash
 git clone https://github.com/Pradi8/project.KanMind-backend.git
-cd kanban-app
+cd project.KanMind-backend
 
 python -m venv venv
 source env/bin/activate  # Linux/Mac
