@@ -51,15 +51,15 @@ It uses **Token Authentication** for secure access and supports a browsable API 
 
 # Project Structure
 ## kanban_app/
-├── models.py        # Boards, Tasks, Comments
-├── views.py         # API views
-├── serializers.py   # DRF serializers
+├── models.py        # Boards, Tasks, Comments <br>
+├── views.py         # API views  <br>
+├── serializers.py   # DRF serializers  <br>
 ├── urls.py
 
 ## auth_app/
-├── views.py         # Registration, login, logout
-├── serializers.py   # DRF serializers
-├── urls.py
+├── views.py         # Registration, login, logout  <br>
+├── serializers.py   # DRF serializers  <br>
+├── urls.py  <br>
 ├── permissions.py   # Custom permissions
 
 manage.py
