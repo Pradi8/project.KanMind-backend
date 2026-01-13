@@ -19,25 +19,37 @@ It uses **Token Authentication** for secure access and supports a browsable API 
 ---
 
 ## Installation
-**Clone the repository**
-```bash
-git clone https://github.com/Pradi8/project.KanMind-backend.git
-cd project.KanMind-backend
+Follow these steps to set up the project locally:
 
-python -m venv env
-source env/bin/activate  # Linux/Mac
-env\Scripts\activate     # Windows
+1. Clone the repository
+  git clone https://github.com/Pradi8/project.KanMind-backend.git
+  cd project.KanMind-backend
 
-pip install -r requirements.txt
+2. Create a virtual environment
+  python -m venv env
 
-pip install django-cors-headers
-pyp
-python manage.py migrate
+3. Activate the virtual environment
+  source env/bin/activate  # Linux/Mac
+  env\Scripts\activate     # Windows
 
-python manage.py createsuperuser
+4. Install Python dependencies
+  pip install -r requirements.txt
 
-python manage.py runserver
+5. Install additional required packages
+  pip install django-cors-headers
 
+6. Apply database migrations
+  python manage.py migrate
+
+7. Create a superuser (admin account)
+  python manage.py createsuperuser
+
+8. Start the development server
+  python manage.py runserver
+  The project will be running at http://127.0.0.1:8000/
+
+
+Project Structure
 kanban_app/
 ├── models.py        # Boards, Tasks, Comments
 ├── views.py         # API views
