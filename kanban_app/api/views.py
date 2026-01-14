@@ -25,8 +25,6 @@ class BoardView(APIView):
     API endpoint to list all boards with annotated metrics or create a new board.
     GET:
     - Returns list of boards with member count, ticket count, tasks to do count, and high-priority tasks count
-    POST:
-    - Creates a new board with provided data
     """
     def get(self, request):
         boards = Boards.objects.annotate(
@@ -45,6 +43,10 @@ class BoardView(APIView):
         )
         serializer = BoardsSerializer(boards, many=True)
         return Response(serializer.data)
+    """
+    POST:
+    - Creates a new board with provided data
+    """
     def post(self, request):
         serializer = BoardsSerializer(data=request.data)
         if serializer.is_valid():
@@ -68,10 +70,16 @@ class TaskView(mixins.ListModelMixin, mixins.CreateModelMixin, generics.GenericA
     """
     queryset = DashboardTasks.objects.all()
     serializer_class = TasksSerializer
-
+    
+    """
+    GET: Returns all tasks
+    """    
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
 
+    """
+    POST: Creates a new task
+    """
     def post(self, request, *args, **kwargs):
         return self.create(request, *args, **kwargs)
 
@@ -117,6 +125,15 @@ class TaskCommentsView(APIView):
         serializer = CommentSerializer(comments, many=True)
         return Response(serializer.data)
 
+    """
+    POST:
+    - Creates a new comment linked to the task and current user
+        URL Parameters:
+    - task_pk (int): The primary key of the task to which the comment will be linked.
+    - Saves the comment linking it to:
+        • task = the retrieved task
+        • author = current user
+    """
     def post(self, request, task_pk):
         task = get_object_or_404(DashboardTasks, pk=task_pk)
         serializer = CommentSerializer(data=request.data)
