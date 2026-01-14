@@ -2,7 +2,7 @@ from django.contrib.auth import authenticate
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework.authtoken.models import Token
 from rest_framework.generics import GenericAPIView
 from .serializers import RegisterationSerializer, UserLoginSerializer
@@ -14,7 +14,7 @@ class RegisterView(APIView):
     - Accepts POST request with: fullname, email, password, repeated_password
     - Returns token and user info on successful registration
     """
-   
+    permission_classes = [AllowAny]
     def post(self, request):
         serializer = RegisterationSerializer(data=request.data)
         if serializer.is_valid():
@@ -38,6 +38,7 @@ class UserLoginView(GenericAPIView):
     - Returns authentication token and user info on success
     """
 
+    permission_classes = [AllowAny]
     serializer_class = UserLoginSerializer
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
