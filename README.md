@@ -35,16 +35,13 @@ It uses **Token Authentication** for secure access and supports a browsable API 
 ## 4. Install Python dependencies
   pip install -r requirements.txt
 
-## 5. Install additional required packages
-  pip install django-cors-headers
-
-## 6. Apply database migrations
+## 5. Apply database migrations
   python manage.py migrate
 
-## 7. Create a superuser (admin account)
+## 6. Create a superuser (admin account)
   python manage.py createsuperuser
 
-## 8. Start the development server
+## 7. Start the development server
   python manage.py runserver  <br>
   The project will be running at http://127.0.0.1:8000/
 
