@@ -18,54 +18,48 @@ It uses **Token Authentication** for secure access and supports a browsable API 
 
 ---
 
-## Installation
-**Clone the repository**
-```bash
-git clone https://github.com/Pradi8/project.KanMind-backend.git
-cd kanban-app
+# Installation
+## Follow these steps to set up the project locally:
 
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-venv\Scripts\activate     # Windows
+## 1. Clone the repository
+  git clone https://github.com/Pradi8/project.KanMind-backend.git <br>
+  cd project.KanMind-backend
 
-pip install -r requirements.txt
+## 2. Create a virtual environment
+  python -m venv env
 
-python manage.py migrate
+## 3. Activate the virtual environment
+  source env/bin/activate  # <b>Linux/Mac</b>  <br>
+  env\Scripts\activate     # <b>Windows</b> 
 
-python manage.py createsuperuser
+## 4. Install Python dependencies
+  pip install -r requirements.txt
 
-python manage.py runserver
+## 5. Install additional required packages
+  pip install django-cors-headers
 
-## API Endpoints
+## 6. Apply database migrations
+  python manage.py migrate
 
-| Endpoint                                      | Method                  | Description                                | 
-| --------------------------------------------- | ----------------------- | ------------------------------------------ | 
-| `/api/registration/`                          | POST                    | Register a new user                        | 
-| `/api/login/`                                 | POST                    | Login and obtain token                     | 
-| `/api/logout/`                                | POST                    | Logout user                                | 
-| `/api/email-check/`                           | GET, POST               | Check if an email is already registered    | 
-| `/api/boards/`                                | GET, POST               | List all boards or create a new board      | 
-| `/api/boards/<int:pk>/`                       | GET, PUT, PATCH, DELETE | Retrieve, update, or delete a board by ID  | 
-| `/api/tasks/`                                 | GET, POST               | List all tasks or create a new task        | 
-| `/api/tasks/assigned-to-me/`                  | GET                     | List tasks assigned to the logged-in user  | 
-| `/api/tasks/reviewing/`                       | GET                     | List tasks the logged-in user is reviewing | 
-| `/api/tasks/<int:pk>/`                        | GET, PUT, PATCH, DELETE | Retrieve, update, or delete a task by ID   | 
-| `/api/tasks/<int:task_pk>/comments/`          | GET, POST               | List or create comments for a task         | 
-| `/api/tasks/<int:task_pk>/comments/<int:pk>/` | GET, PUT, PATCH, DELETE | Retrieve, update, or delete a comment      | 
-| `/api-auth/login/`                            | GET, POST               | DRF Browsable API login (optional)         | 
-| `/api-auth/logout/`                           | POST                    | DRF Browsable API logout (optional)        | 
+## 7. Create a superuser (admin account)
+  python manage.py createsuperuser
+
+## 8. Start the development server
+  python manage.py runserver  <br>
+  The project will be running at http://127.0.0.1:8000/
 
 
-kanban_app/
-├── models.py        # Boards, Tasks, Comments
-├── views.py         # API views
-├── serializers.py   # DRF serializers
+# Project Structure
+## kanban_app/
+├── models.py        # Boards, Tasks, Comments <br>
+├── views.py         # API views  <br>
+├── serializers.py   # DRF serializers  <br>
 ├── urls.py
 
-auth_app/
-├── views.py         # Registration, login, logout
-├── serializers.py   # DRF serializers
-├── urls.py
+## auth_app/
+├── views.py         # Registration, login, logout  <br>
+├── serializers.py   # DRF serializers  <br>
+├── urls.py  <br>
 ├── permissions.py   # Custom permissions
 
 manage.py
