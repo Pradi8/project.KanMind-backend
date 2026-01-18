@@ -16,7 +16,7 @@ from .views import  (
 urlpatterns = [
     path('email-check/', UserEmailList.as_view(), name='email-check'),
     path('boards/', BoardView.as_view(), name='board'),
-    path('boards/<int:pk>/', BoardSingleView.as_view(), name='board-detail'),
+    path('boards/<int:pk>/', BoardSingleView.as_view(), name='board-single-view'),
     path('tasks/', TaskView.as_view(), name='taskview'),
     path('tasks/assigned-to-me/', AssignedTaskView.as_view(), name='assigned-task'),
     path('tasks/reviewing/', ReviewerTaskView.as_view(), name='reviewing'),

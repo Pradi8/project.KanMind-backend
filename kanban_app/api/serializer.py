@@ -2,6 +2,11 @@ from django.contrib.auth.models import User
 from rest_framework import serializers
 from kanban_app.models import Boards, DashboardTasks, Comment
 
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "username", "email", "first_name", "last_name"]
+
 class CheckMailSerializer(serializers.ModelSerializer):
     """
     Serializer to represent a user with:
@@ -23,24 +28,17 @@ class TasksSerializer(serializers.ModelSerializer):
     - Includes count of comments
     - Supports write-only fields for assignee_id and reviewer_id
     """
-    assignee = CheckMailSerializer(source='assignee_id', read_only=True)
-    reviewer = CheckMailSerializer(source='reviewer_id', read_only=True)
+    reviewer = CheckMailSerializer(source="reviewer_id", read_only=True)
+    assignee = CheckMailSerializer(source="assignee_id", read_only=True)
+    assignee_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), write_only=True)
+    reviewer_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), write_only=True)
     comments_count = serializers.SerializerMethodField()
-
-    assignee_id = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(),
-        write_only=True
-    )
-    reviewer_id = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(),
-        write_only=True
-    )
     def get_comments_count(self, obj):
         return obj.comments.count()
 
     class Meta:
         model = DashboardTasks
-        fields = ['id' ,'title','description', 'board', 'assignee', 'reviewer', 'due_date', 'priority', 'status', 'comments_count','assignee_id', 'reviewer_id']
+        fields = ['id' ,'board' ,'title','description','status', 'priority','assignee', 'assignee_id', 'reviewer', 'reviewer_id', 'due_date', 'comments_count']
 
 class BoardsMixin(serializers.Serializer):
     """
@@ -50,35 +48,58 @@ class BoardsMixin(serializers.Serializer):
     - tasks_to_do_count: number of tasks with status 'To Do'
     - tasks_high_prio_count: number of high-priority tasks
     """
-    member_count = serializers.IntegerField(read_only=True)
-    ticket_count = serializers.IntegerField(read_only=True)
-    tasks_to_do_count = serializers.IntegerField(read_only=True)
-    tasks_high_prio_count = serializers.IntegerField(read_only=True)
+    member_count = serializers.SerializerMethodField()
+    ticket_count = serializers.SerializerMethodField()
+    tasks_to_do_count = serializers.SerializerMethodField()
+    tasks_high_prio_count = serializers.SerializerMethodField()
 
-class BoardsSerializer(BoardsMixin, serializers.ModelSerializer):
+    def get_member_count(self, obj):
+        return obj.members.count()
+
+    def get_ticket_count(self, obj):
+        return obj.tasks.count()
+
+    def get_tasks_to_do_count(self, obj):
+        return obj.tasks.filter(status="to-do").count()
+
+    def get_tasks_high_prio_count(self, obj):
+        return obj.tasks.filter(priority="high").count()
+    
+class OwnerIdMixin(serializers.Serializer):
+    owner_id = serializers.ReadOnlyField(source="owner.id")
+
+class BoardsSerializer(BoardsMixin,OwnerIdMixin, serializers.ModelSerializer):
     """
     Serializer for Boards model
     - Nested members (full user info)
     - Nested tasks (with TasksSerializer)
     - Allows assigning members via member_ids (write-only)
     """
-    members = CheckMailSerializer(read_only = True, many=True)
-    member_ids = serializers.PrimaryKeyRelatedField(
+    members = serializers.PrimaryKeyRelatedField(
         many=True,
         queryset=User.objects.all(),
-        source='members',
         write_only=True
     )
-    tasks = TasksSerializer(read_only=True, many=True)
+
     class Meta:
         model = Boards
-        fields = ['id' ,'title', 'created_date', 'members', 'member_ids', 'member_count', 'ticket_count', 'tasks', 'tasks_to_do_count', 'tasks_high_prio_count']
+        fields = ['id' ,'title', 'member_count', 'ticket_count', 'tasks_to_do_count', 'tasks_high_prio_count', 'owner_id', 'members']
 
-    def to_internal_value(self, data):
-        if 'members' in data and 'member_ids' not in data:
-            data['member_ids'] = data.pop('members')
-        return super().to_internal_value(data)
     
+class BoardDetailSerializer(OwnerIdMixin, serializers.ModelSerializer):
+    """
+    Serializer for detailed board representation.
+    Includes:
+    - Owner information (nested user data)
+    - Members information (list of nested user data)
+    """
+    owner_data = CheckMailSerializer(source="owner", read_only=True)
+    members_data = CheckMailSerializer(source="members", many=True, read_only=True)
+
+    class Meta:
+        model = Boards
+        fields = ['id' ,'title', 'owner_data','members_data']
+
 class CommentSerializer(serializers.ModelSerializer):
     """
     Serializer for Comment model
@@ -91,6 +112,6 @@ class CommentSerializer(serializers.ModelSerializer):
     )
     class Meta:
         model = Comment
-        fields = ['id', 'task', 'content', 'created_at', 'author']
+        fields = ['id','created_at', 'author', 'content']
         read_only_fields = ['created_at', 'author']
 

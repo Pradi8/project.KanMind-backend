@@ -1,8 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
 
-# Create your models here.
-
 class Boards(models.Model):
     """
     Represents a Kanban board.
@@ -11,7 +9,8 @@ class Boards(models.Model):
     - created_date: Date when the board was created
     """
     title = models.CharField(max_length=150)
-    members = models.ManyToManyField(User)
+    members = models.ManyToManyField(User, related_name="shared_boards")
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="boards_owner", null=False, blank=False)
     created_date = models.DateField(auto_now_add=True)
 
     def __str__(self):
@@ -44,7 +43,7 @@ class DashboardTasks(models.Model):
 
     title = models.CharField(max_length=150)
     description = models.TextField()
-    board =  models.ForeignKey(Boards, related_name="tasks", null=True, blank=True, on_delete=models.SET_NULL)
+    board = models.ForeignKey(Boards,related_name="tasks", on_delete=models.SET_NULL, null=True, blank=True)
     assignee_id = models.ForeignKey(User, related_name="assigned_tasks", on_delete=models.SET_NULL, null=True, blank=True)
     reviewer_id = models.ForeignKey(User, related_name="reviewed_tasks", on_delete=models.SET_NULL, null=True, blank=True)
     due_date = models.DateField(null=True, blank=True)

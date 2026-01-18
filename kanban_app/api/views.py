@@ -1,13 +1,14 @@
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
-from django.db.models import Count, Q
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 from rest_framework import status, generics, mixins
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.generics import RetrieveUpdateDestroyAPIView, GenericAPIView
 from kanban_app.models import Boards, Comment, DashboardTasks
-from .serializer import BoardsSerializer, CheckMailSerializer, TasksSerializer, CommentSerializer
-from auth_app.api.permissions import IsOwnerOrAdmin
+from .serializer import BoardDetailSerializer, BoardsSerializer, CheckMailSerializer, TasksSerializer, CommentSerializer
+from auth_app.api.permissions import IsOwnerOrAdmin, IsOwnerOrMember
 class UserEmailList(APIView):
     """
     API endpoint to retrieve a user by email.
@@ -16,7 +17,24 @@ class UserEmailList(APIView):
     """
     def get(self, request):
         email = request.query_params.get("email")
+        if not email:
+            return Response(
+                {"detail": "Email is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        try:
+            validate_email(email)
+        except ValidationError:
+                return Response(
+                {"detail": "Invalid email format."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         users = User.objects.filter(email=email).first()
+        if not users:
+            return Response(
+                {"detail": "User with this email does not exist."},
+                status=status.HTTP_404_NOT_FOUND
+            )
         serializer = CheckMailSerializer(users)
         return Response(serializer.data)
     
@@ -27,20 +45,7 @@ class BoardView(APIView):
     - Returns list of boards with member count, ticket count, tasks to do count, and high-priority tasks count
     """
     def get(self, request):
-        boards = Boards.objects.annotate(
-            member_count=Count("members", distinct=True),
-            ticket_count=Count("tasks", distinct=True),
-            tasks_to_do_count=Count(
-                "tasks",
-                filter=Q(tasks__status="to-do"),
-                distinct=True
-            ),
-            tasks_high_prio_count=Count(
-                "tasks",
-                filter=Q(tasks__priority="high"),
-                distinct=True
-            ),
-        )
+        boards = Boards.objects.all()
         serializer = BoardsSerializer(boards, many=True)
         return Response(serializer.data)
     """
@@ -50,19 +55,20 @@ class BoardView(APIView):
     def post(self, request):
         serializer = BoardsSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(owner=request.user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-class BoardSingleView(generics.RetrieveUpdateDestroyAPIView):
+class BoardSingleView(RetrieveUpdateDestroyAPIView):
     """
     API endpoint for a single board.
     - Supports GET, PUT/PATCH, DELETE
     """
+    permission_classes = [IsOwnerOrMember]
     queryset = Boards.objects.all()
-    serializer_class = BoardsSerializer
+    serializer_class = BoardDetailSerializer
     
-class TaskView(mixins.ListModelMixin, mixins.CreateModelMixin, generics.GenericAPIView):
+class TaskView(mixins.ListModelMixin, mixins.CreateModelMixin, GenericAPIView):
     """
     API endpoint to list all tasks or create a new task.
     GET: Returns all tasks
@@ -83,11 +89,12 @@ class TaskView(mixins.ListModelMixin, mixins.CreateModelMixin, generics.GenericA
     def post(self, request, *args, **kwargs):
         return self.create(request, *args, **kwargs)
 
-class TasksSingleView(generics.RetrieveUpdateDestroyAPIView):
+class TasksSingleView(RetrieveUpdateDestroyAPIView):
     """
     API endpoint for a single task.
     - Supports GET, PUT/PATCH, DELETE
     """
+    permission_classes = [IsOwnerOrMember]
     queryset = DashboardTasks.objects.all()
     serializer_class = TasksSerializer
 
@@ -96,6 +103,7 @@ class AssignedTaskView(APIView):
     API endpoint to get all tasks assigned to the requesting user.
     - GET request
     """
+    permission_classes = [IsOwnerOrAdmin]
     def get(self, request):
         tasks = DashboardTasks.objects.filter(assignee_id=request.user)
         serializer = TasksSerializer(tasks, many=True)
@@ -106,6 +114,7 @@ class ReviewerTaskView(APIView):
     API endpoint to get all tasks where the requesting user is the reviewer.
     - GET request
     """
+    permission_classes = [IsOwnerOrAdmin]
     def get(self, request):
         tasks = DashboardTasks.objects.filter(reviewer_id=request.user)
         serializer = TasksSerializer(tasks, many=True)
@@ -116,8 +125,6 @@ class TaskCommentsView(APIView):
     API endpoint to list or create comments for a specific task.
     GET:
     - Returns all comments for the task
-    POST:
-    - Creates a new comment linked to the task and current user
     """
     def get(self, request, task_pk):
         task = get_object_or_404(DashboardTasks, pk=task_pk)
