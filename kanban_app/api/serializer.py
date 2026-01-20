@@ -32,13 +32,27 @@ class TasksSerializer(serializers.ModelSerializer):
     assignee = CheckMailSerializer(source="assignee_id", read_only=True)
     assignee_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), write_only=True)
     reviewer_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), write_only=True)
+    board = serializers.PrimaryKeyRelatedField(queryset=Boards.objects.all())
     comments_count = serializers.SerializerMethodField()
+   
+
     def get_comments_count(self, obj):
         return obj.comments.count()
 
     class Meta:
         model = DashboardTasks
         fields = ['id' ,'board' ,'title','description','status', 'priority','assignee', 'assignee_id', 'reviewer', 'reviewer_id', 'due_date', 'comments_count']
+
+class TaskDetailSerializer(serializers.ModelSerializer):
+
+    reviewer = CheckMailSerializer(source="reviewer_id", read_only=True)
+    assignee = CheckMailSerializer(source="assignee_id", read_only=True)
+    assignee_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), write_only=True)
+    reviewer_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), write_only=True)
+
+    class Meta:
+        model = DashboardTasks
+        fields = ['id' ,'title','description','status', 'priority','assignee', 'assignee_id', 'reviewer', 'reviewer_id', 'due_date']
 
 class BoardsMixin(serializers.Serializer):
     """
@@ -95,10 +109,28 @@ class BoardDetailSerializer(OwnerIdMixin, serializers.ModelSerializer):
     """
     owner_data = CheckMailSerializer(source="owner", read_only=True)
     members_data = CheckMailSerializer(source="members", many=True, read_only=True)
+    members = CheckMailSerializer(many=True, read_only=True)
+    tasks = TasksSerializer(many=True,read_only=True)
+
 
     class Meta:
         model = Boards
-        fields = ['id' ,'title', 'owner_data','members_data']
+        fields = ['id' ,'title','owner_id', 'members', 'owner_data','members_data', 'tasks']
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get("request")
+
+        if request:
+            if request.method == "PATCH":
+                # Remove fields for PATCH requests
+                self.fields.pop("owner_id", None)
+                self.fields.pop("members", None)
+                self.fields.pop("tasks", None)
+            elif request.method == "GET":
+                # Remove fields for GET requests
+                self.fields.pop("owner_data", None)
+                self.fields.pop("members_data", None)
 
 class CommentSerializer(serializers.ModelSerializer):
     """
