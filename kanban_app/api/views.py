@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from rest_framework.generics import RetrieveUpdateDestroyAPIView, GenericAPIView, ListCreateAPIView
 from kanban_app.models import Boards, Comment, DashboardTasks
 from .serializer import BoardDetailSerializer, BoardsSerializer, CheckMailSerializer, TaskDetailSerializer, TasksSerializer, CommentSerializer
-from auth_app.api.permissions import IsBoardMemberForSingleTask, IsBoardMemberForTask, IsOwnerOrAdmin, IsOwnerOrMember, IsOwnerOrMemberList
+from auth_app.api.permissions import IsBoardMemberForTask, IsOwnerOrMemberBoard, IsCommentAuthorOrBoardMember
 class UserEmailList(APIView):
     """
     API endpoint to retrieve a user by email.
@@ -47,7 +47,7 @@ class BoardView(ListCreateAPIView):
     - Returns list of boards with member count, ticket count, tasks to do count, and high-priority tasks count
     """
     serializer_class = BoardsSerializer
-    permission_classes = [IsOwnerOrMemberList]
+    permission_classes = [IsOwnerOrMemberBoard]
     queryset = Boards.objects.all()
     def get_queryset(self):
         user = self.request.user
@@ -60,7 +60,7 @@ class BoardSingleView(RetrieveUpdateDestroyAPIView):
     API endpoint for a single board.
     - Supports GET, PUT/PATCH, DELETE
     """
-    permission_classes = [IsOwnerOrMember]
+    permission_classes = [IsOwnerOrMemberBoard]
     queryset = Boards.objects.all()
     serializer_class = BoardDetailSerializer
     
@@ -72,7 +72,7 @@ class TaskView(mixins.ListModelMixin, mixins.CreateModelMixin, GenericAPIView):
     """
     queryset = DashboardTasks.objects.all()
     serializer_class = TasksSerializer
-    permission_classes = [IsOwnerOrMemberList, IsBoardMemberForTask]
+    permission_classes = [IsOwnerOrMemberBoard, IsBoardMemberForTask]
     
     """
     GET: Returns all tasks
@@ -97,10 +97,8 @@ class TasksSingleView(RetrieveUpdateDestroyAPIView):
     API endpoint for a single task.
     - Supports GET, PUT/PATCH, DELETE
     """
-    permission_classes = [IsBoardMemberForSingleTask]
     queryset = DashboardTasks.objects.all()
-    def get_queryset(self):
-        return DashboardTasks.objects.filter(board__members=self.request.user)
+    permission_classes = [IsBoardMemberForTask]
     serializer_class = TaskDetailSerializer
 
 class AssignedTaskView(APIView):
@@ -119,7 +117,7 @@ class ReviewerTaskView(APIView):
     API endpoint to get all tasks where the requesting user is the reviewer.
     - GET request
     """
-    permission_classes = [IsOwnerOrAdmin]
+    permission_classes = [IsBoardMemberForTask]
     def get(self, request):
         tasks = DashboardTasks.objects.filter(reviewer_id=request.user)
         serializer = TasksSerializer(tasks, many=True)
@@ -131,8 +129,10 @@ class TaskCommentsView(APIView):
     GET:
     - Returns all comments for the task
     """
+    permission_classes = [IsCommentAuthorOrBoardMember]
     def get(self, request, task_pk):
         task = get_object_or_404(DashboardTasks, pk=task_pk)
+        self.check_object_permissions(request, task)
         comments = task.comments.all() 
         serializer = CommentSerializer(comments, many=True)
         return Response(serializer.data)
@@ -148,6 +148,7 @@ class TaskCommentsView(APIView):
     """
     def post(self, request, task_pk):
         task = get_object_or_404(DashboardTasks, pk=task_pk)
+        self.check_object_permissions(request, task)
         serializer = CommentSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save(task=task, author=request.user)
@@ -161,7 +162,7 @@ class CommentSingleView(generics.RetrieveUpdateDestroyAPIView):
     - GET request available for all
     """
     serializer_class = CommentSerializer
-    permission_classes = [IsOwnerOrAdmin]
+    permission_classes = [IsCommentAuthorOrBoardMember]
 
     def get_queryset(self):
         return Comment.objects.filter(
