@@ -61,10 +61,13 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 
-# Ignore Django migration files
-*/migrations/
+# Ignore compiled Python files
+*.pyc
+__pycache__/
+
+# Ignore all migration files except __init__.py
 */migrations/*.py
-*/migrations/*.pyc
+!*/migrations/__init__.py
 
 # Optionally ignore __pycache__
 __pycache__/
