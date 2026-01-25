@@ -110,12 +110,17 @@ class BoardDetailSerializer(OwnerIdMixin, serializers.ModelSerializer):
     owner_data = CheckMailSerializer(source="owner", read_only=True)
     members_data = CheckMailSerializer(source="members", many=True, read_only=True)
     members = CheckMailSerializer(many=True, read_only=True)
+    members_ids = serializers.PrimaryKeyRelatedField(
+        source="members",
+        many=True,
+        queryset=User.objects.all(),
+        write_only=True
+    )
+ 
     tasks = TasksSerializer(many=True,read_only=True)
-
-
     class Meta:
         model = Boards
-        fields = ['id' ,'title','owner_id', 'members', 'owner_data','members_data', 'tasks']
+        fields = ['id' ,'title','owner_id', 'members', 'owner_data','members_data', 'members_ids', 'tasks']
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -131,6 +136,7 @@ class BoardDetailSerializer(OwnerIdMixin, serializers.ModelSerializer):
                 # Remove fields for GET requests
                 self.fields.pop("owner_data", None)
                 self.fields.pop("members_data", None)
+                self.fields.pop("members_ids", None)
 
 class CommentSerializer(serializers.ModelSerializer):
     """

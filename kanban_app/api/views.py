@@ -8,6 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.generics import RetrieveUpdateDestroyAPIView, GenericAPIView, ListCreateAPIView
+from rest_framework.exceptions import NotFound
 from kanban_app.models import Boards, Comment, DashboardTasks
 from .serializer import BoardDetailSerializer, BoardsSerializer, CheckMailSerializer, TaskDetailSerializer, TasksSerializer, CommentSerializer
 from auth_app.api.permissions import IsBoardMemberForTask, IsOwnerOrMemberBoard, IsCommentAuthorOrBoardMember
@@ -47,7 +48,7 @@ class BoardView(ListCreateAPIView):
     - Returns list of boards with member count, ticket count, tasks to do count, and high-priority tasks count
     """
     serializer_class = BoardsSerializer
-    permission_classes = [IsOwnerOrMemberBoard]
+    permission_classes = [IsAuthenticated]
     queryset = Boards.objects.all()
     def get_queryset(self):
         user = self.request.user
@@ -60,9 +61,17 @@ class BoardSingleView(RetrieveUpdateDestroyAPIView):
     API endpoint for a single board.
     - Supports GET, PUT/PATCH, DELETE
     """
-    permission_classes = [IsOwnerOrMemberBoard]
     queryset = Boards.objects.all()
     serializer_class = BoardDetailSerializer
+    permission_classes = [IsOwnerOrMemberBoard]
+
+    def get_object(self):
+        """
+        First, check if the board exists → 404
+        Then DRF automatically handles the permissions
+        """
+        obj = super().get_object()
+        return obj
     
 class TaskView(mixins.ListModelMixin, mixins.CreateModelMixin, GenericAPIView):
     """
@@ -133,7 +142,7 @@ class TaskCommentsView(APIView):
     def get(self, request, task_pk):
         task = get_object_or_404(DashboardTasks, pk=task_pk)
         self.check_object_permissions(request, task)
-        comments = task.comments.all() 
+        comments = Comment.objects.all() 
         serializer = CommentSerializer(comments, many=True)
         return Response(serializer.data)
 

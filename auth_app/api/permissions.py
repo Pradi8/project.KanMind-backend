@@ -23,14 +23,18 @@ class IsOwnerOrMemberBoard(BasePermission):
         if not user or not user.is_authenticated:
             return False
 
+        # GET → only authentication (login) is required
+        # if request.method == "GET":
+        #     return True
+
         # POST → any authenticated user can create a board
         if request.method == "POST":
             return True
 
-        # List views → check ownership or membership
-        if isinstance(view, (view.__class__,)) or hasattr(view, "queryset"):
-            # Use a broad filter to see if user owns/is member of at least one board
-            return Boards.objects.filter(Q(owner=user) | Q(members=user)).exists()
+        # # List views → check ownership or membership
+        # if isinstance(view, (view.__class__,)) or hasattr(view, "queryset"):
+        #     # Use a broad filter to see if user owns/is member of at least one board
+        #     return Boards.objects.filter(Q(owner=user) | Q(members=user)).exists()
 
         # Detail views → permission checked in has_object_permission
         return True
@@ -116,7 +120,7 @@ class IsCommentAuthorOrBoardMember(BasePermission):
 
         # Read → board members
         if request.method in SAFE_METHODS:
-            return user == obj.board.owner or user in obj.task.board.members.all()
+            return user == obj.board.owner or user in obj.board.members.all()
 
         # Edit/Delete → only comment author
         return user == obj.author
