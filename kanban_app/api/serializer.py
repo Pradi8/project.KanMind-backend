@@ -107,6 +107,9 @@ class BoardDetailSerializer(OwnerIdMixin, serializers.ModelSerializer):
     - Owner information (nested user data)
     - Members information (list of nested user data)
     """
+
+
+
     owner_data = CheckMailSerializer(source="owner", read_only=True)
     members_data = CheckMailSerializer(source="members", many=True, read_only=True)
     members = CheckMailSerializer(many=True, read_only=True)
@@ -137,6 +140,13 @@ class BoardDetailSerializer(OwnerIdMixin, serializers.ModelSerializer):
                 self.fields.pop("owner_data", None)
                 self.fields.pop("members_data", None)
                 self.fields.pop("members_ids", None)
+
+    def to_internal_value(self, data):
+        data = data.copy()
+        # write members_ids into members
+        if 'members' in data and 'members_ids' not in data:
+            data['members_ids'] = data.pop('members')
+        return super().to_internal_value(data)
 
 class CommentSerializer(serializers.ModelSerializer):
     """

@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
 from django.core.validators import validate_email
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, PermissionDenied
 from django.db.models import Q
 from rest_framework import status, generics, mixins
 from rest_framework.permissions import IsAuthenticated
@@ -12,6 +12,7 @@ from rest_framework.exceptions import NotFound
 from kanban_app.models import Boards, Comment, DashboardTasks
 from .serializer import BoardDetailSerializer, BoardsSerializer, CheckMailSerializer, TaskDetailSerializer, TasksSerializer, CommentSerializer
 from auth_app.api.permissions import IsBoardMemberForTask, IsOwnerOrMemberBoard, IsCommentAuthorOrBoardMember
+
 class UserEmailList(APIView):
     """
     API endpoint to retrieve a user by email.
@@ -63,7 +64,7 @@ class BoardSingleView(RetrieveUpdateDestroyAPIView):
     """
     queryset = Boards.objects.all()
     serializer_class = BoardDetailSerializer
-    permission_classes = [IsOwnerOrMemberBoard]
+    permission_classes = [IsAuthenticated, IsOwnerOrMemberBoard]
 
     def get_object(self):
         """
@@ -81,25 +82,26 @@ class TaskView(mixins.ListModelMixin, mixins.CreateModelMixin, GenericAPIView):
     """
     queryset = DashboardTasks.objects.all()
     serializer_class = TasksSerializer
-    permission_classes = [IsOwnerOrMemberBoard, IsBoardMemberForTask]
-    
-    """
-    GET: Returns all tasks
-    """    
-    def get(self, request, *args, **kwargs):
-        return self.list(request, *args, **kwargs)
+    permission_classes = [IsBoardMemberForTask]
 
-    """
-    POST: Creates a new task
-    """
     def post(self, request, *args, **kwargs):
         board_id = request.data.get("board")
+
+        # Check if the board exists → return 404 if not found
         try:
-            board = Boards.objects.get(id=board_id)
+            board = Boards.objects.get(pk=board_id)
         except Boards.DoesNotExist:
-            from rest_framework.exceptions import NotFound
-            raise NotFound("Board nicht gefunden. Die angegebene Board-ID existiert nicht.")
-        return self.create(request, *args, **kwargs)
+            raise NotFound("Board does not exist.")
+        user = request.user
+        if board.owner != user and user not in board.members.all():
+            raise PermissionDenied("User must be a member of the board to perform this action.")
+
+        # Serialize the data and save the new task
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(board=board)  
+        return Response(serializer.data, status=201)
+
 
 class TasksSingleView(RetrieveUpdateDestroyAPIView):
     """
@@ -109,6 +111,7 @@ class TasksSingleView(RetrieveUpdateDestroyAPIView):
     queryset = DashboardTasks.objects.all()
     permission_classes = [IsBoardMemberForTask]
     serializer_class = TaskDetailSerializer
+
 
 class AssignedTaskView(APIView):
     """
@@ -138,11 +141,18 @@ class TaskCommentsView(APIView):
     GET:
     - Returns all comments for the task
     """
-    permission_classes = [IsCommentAuthorOrBoardMember]
+    permission_classes = [IsAuthenticated, IsCommentAuthorOrBoardMember]
     def get(self, request, task_pk):
         task = get_object_or_404(DashboardTasks, pk=task_pk)
-        self.check_object_permissions(request, task)
-        comments = Comment.objects.all() 
+        if not task.board:
+            raise PermissionDenied("Task is not assigned to a board.")
+
+        user = request.user
+        board = task.board
+        if user != board.owner and user not in board.members.all():
+            raise PermissionDenied("User must be a member of the board to view comments.")
+
+        comments = Comment.objects.filter(task=task)
         serializer = CommentSerializer(comments, many=True)
         return Response(serializer.data)
 
@@ -157,12 +167,23 @@ class TaskCommentsView(APIView):
     """
     def post(self, request, task_pk):
         task = get_object_or_404(DashboardTasks, pk=task_pk)
-        self.check_object_permissions(request, task)
+
+        # Check if task has a board
+        if not task.board:
+            raise PermissionDenied("Task is not assigned to a board.")
+
+        board = task.board
+        user = request.user
+
+        # Only Board owner or member can post
+        if user != board.owner and user not in board.members.all():
+            raise PermissionDenied("User must be a member of the board to comment.")
+
+        # Create the comment
         serializer = CommentSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save(task=task, author=request.user)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(task=task, author=user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
     
 class CommentSingleView(generics.RetrieveUpdateDestroyAPIView):
     """
@@ -171,9 +192,9 @@ class CommentSingleView(generics.RetrieveUpdateDestroyAPIView):
     - GET request available for all
     """
     serializer_class = CommentSerializer
-    permission_classes = [IsCommentAuthorOrBoardMember]
+    permission_classes = [IsAuthenticated, IsCommentAuthorOrBoardMember]
 
     def get_queryset(self):
-        return Comment.objects.filter(
-            task_id=self.kwargs['task_pk']
-        )
+        # Filter comments for the specific task and the individual comment
+        task_pk = self.kwargs['task_pk']
+        return Comment.objects.filter(task_id=task_pk)
